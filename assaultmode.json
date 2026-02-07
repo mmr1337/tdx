@@ -1,5 +1,5 @@
 [
-  {"SuperFunction": "rebuild",},
+  {"SuperFunction": "rebuild"},
 {"TowerPlaceCost":285,"TowerPlaced":"Sniper","TowerVector":"14.21780776977539, 50.54885482788086, 73.60079193115234","Rotation":"0","TowerA1":"8258.633571699997"},
 {"TowerUpgraded":14.21780776977539,"UpgradeCost":0,"UpgradePath":1},
 {"TowerUpgraded":14.21780776977539,"UpgradeCost":0,"UpgradePath":1},
