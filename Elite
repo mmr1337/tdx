@@ -26,9 +26,9 @@ warn("load")
 
 
 local keyURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/key.txt" -- Replace with your actual key list URL
-local jsonURL = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/recorder_output.json"
+local jsonURL = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/Elite.json"
 local macroFolder = "tdx/macros"
-local macroFile = macroFolder.."/recorder_output.json"
+local macroFile = macroFolder.."/Elite.json"
 local loaderURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/loader.lua"
 local skipWaveURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/auto_skip.lua"
 
@@ -61,7 +61,7 @@ getgenv().TDX_Config = {
     ["Auto Skill"] = true,
     ["Map"] = "CASTLE VALLEY",
     ["Macros"] = "run",
-    ["Macro Name"] = "recorder_output",
+    ["Macro Name"] = "Elite",
     ["Auto Difficulty"] = "Elite"
 }
 
