@@ -1,0 +1,113 @@
+wait(10)
+local Players = game:GetService("Players")
+local ContentProvider = game:GetService("ContentProvider")
+local player = Players.LocalPlayer
+
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+
+local character = player.Character or player.CharacterAdded:Wait()
+character:WaitForChild("HumanoidRootPart")
+
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+repeat
+    task.wait(0.1)
+until ContentProvider.RequestQueueSize == 0
+
+
+warn("load")
+
+
+
+local keyURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/key.txt" -- Replace with your actual key list URL
+local jsonURL = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/recorder_output.json"
+local macroFolder = "tdx/macros"
+local macroFile = macroFolder.."/recorder_output.json"
+local loaderURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/loader.lua"
+local skipWaveURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/auto_skip.lua"
+
+local HttpService = game:GetService("HttpService")
+
+
+if not isfolder("tdx") then makefolder("tdx") end
+if not isfolder(macroFolder) then makefolder(macroFolder) end
+
+-- Download JSON macro
+local success, result = pcall(function()
+    return game:HttpGet(jsonURL)
+end)
+
+if success then
+    writefile(macroFile, result)
+    print("[✔] Downloaded macro file.")
+else
+    warn("[✘] Failed to download macro:", result)
+    return
+end
+
+repeat wait() until game:IsLoaded() and game.Players.LocalPlayer
+
+getgenv().TDX_Config = {
+    ["Key"] = "your_access_key_here", -- Chỉ 1 key duy nhất
+    ["mapvoting"] = "CASTLE VALLEY",
+    ["Return Lobby"] = true,
+    ["x1.5 Speed"] = true,
+    ["Auto Skill"] = true,
+    ["Map"] = "CASTLE VALLEY",
+    ["Macros"] = "run",
+    ["Macro Name"] = "recorder_output",
+    ["Auto Difficulty"] = "Elite"
+}
+
+-- Run main loader
+loadstring(game:HttpGet(loaderURL))()
+
+-- Wave skip config
+_G.WaveConfig = {
+    ["WAVE 0"] = 0,
+    ["WAVE 1"] = "i",
+    ["WAVE 2"] = "i",
+    ["WAVE 3"] = "i",
+    ["WAVE 4"] = "i",
+    ["WAVE 5"] = 120,
+    ["WAVE 6"] = 120,
+    ["WAVE 7"] = "i",
+    ["WAVE 8"] = "i",
+    ["WAVE 9"] = 120,
+    ["WAVE 10"] = "i",
+    ["WAVE 11"] = 120, 
+    ["WAVE 12"] = 120, 
+    ["WAVE 13"] = "i",
+    ["WAVE 14"] = "i",
+    ["WAVE 15"] = "i",
+    ["WAVE 16"] = 120,
+    ["WAVE 17"] = 120,
+    ["WAVE 18"] = 120,
+    ["WAVE 19"] = 120,
+    ["WAVE 20"] = 120,
+    ["WAVE 21"] = 120,
+    ["WAVE 22"] = 120,
+    ["WAVE 23"] = 120,
+    ["WAVE 24"] = 120, 
+    ["WAVE 25"] = 120,   
+    ["WAVE 26"] = 120,
+    ["WAVE 27"] = 120,
+    ["WAVE 28"] = 120,
+    ["WAVE 29"] = 120,
+    ["WAVE 30"] = 120,
+    ["WAVE 31"] = 120,
+    ["WAVE 32"] = 120,
+    ["WAVE 33"] = 120, 
+    ["WAVE 34"] = 0,  
+}
+
+-- Run auto skip script
+loadstring(game:HttpGet(skipWaveURL))()
+
+
