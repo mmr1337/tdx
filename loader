@@ -1,0 +1,141 @@
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local SCRIPTS = {
+    ["logo.lua"] = "https://raw.githubusercontent.com/mmr1337/tdx/main/logo.lua",
+    ["record.lua"] = "https://raw.githubusercontent.com/mmr1337/tdx/main/test.lua",
+    ["run_macro.lua"] = "https://raw.githubusercontent.com/mmr1337/tdx/main/run_macro.lua",
+    ["main.lua"] = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/moonveil%20(1).lua"
+}
+
+local ImGui
+local IsStudio = RunService:IsStudio()
+if IsStudio then
+    ImGui = require(ReplicatedStorage.ImGui)
+else
+    local SourceURL = 'https://github.com/depthso/Roblox-ImGUI/raw/main/ImGui.lua'
+    ImGui = loadstring(game:HttpGet(SourceURL))()
+end
+
+local selectedScript = "main.lua"
+local isLoading = false
+local logoLoaded = false
+
+local function loadScript(url)
+    if isLoading then
+        return false
+    end
+    
+    isLoading = true
+    
+    local success, result = pcall(function()
+        local scriptContent = game:HttpGet(url)
+        return loadstring(scriptContent)
+    end)
+    
+    if success and result then
+        local execSuccess, execError = pcall(result)
+        if execSuccess then
+            isLoading = false
+            return true
+        else
+            isLoading = false
+            return false
+        end
+    else
+        isLoading = false
+        return false
+    end
+end
+
+local function loadLogo()
+    if logoLoaded then return end
+    
+    local success = loadScript(SCRIPTS["logo.lua"])
+    logoLoaded = true
+end
+
+spawn(function()
+    loadLogo()
+    wait(12)
+    createLoaderUI()
+end)
+
+function createLoaderUI()
+    local Window = ImGui:CreateWindow({
+        Title = "Moon",
+        Size = UDim2.new(0, 450, 0, 220),
+        Position = UDim2.new(0.5, -225, 0.5, -110)
+    })
+    Window:Center()
+
+    local MainTab = Window:CreateTab({
+        Name = "Loader",
+        Visible = true
+    })
+
+    MainTab:Label({ 
+        Text = "Select Script to Load",
+        TextColor3 = Color3.fromRGB(200, 220, 255)
+    })
+
+    MainTab:Separator()
+
+    local ScriptCombo = MainTab:Combo({
+        Label = "Script Selection",
+        Selected = selectedScript,
+        Items = {
+            "main.lua",
+            "record.lua",
+            "run_macro.lua"
+        },
+        Callback = function(self, Value)
+            selectedScript = Value
+        end
+    })
+
+    MainTab:Separator()
+
+    local StatusLabel = MainTab:Label({ 
+        Text = "Status: Ready",
+        TextColor3 = Color3.fromRGB(100, 255, 100)
+    })
+
+    MainTab:Separator()
+
+    local LoadButton = MainTab:Button({
+        Text = "Load Script",
+        Callback = function(self)
+            if isLoading then
+                StatusLabel.Text = "Status: Already loading..."
+                StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+                return
+            end
+            
+            StatusLabel.Text = "Status: Loading " .. selectedScript .. "..."
+            StatusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+            
+            spawn(function()
+                local success = loadScript(SCRIPTS[selectedScript])
+                
+                if success then
+                    StatusLabel.Text = "Loaded successfully!"
+                    StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+                    wait(2)
+                    Window:Close()
+                else
+                    StatusLabel.Text = "Failed to load"
+                    StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                end
+            end)
+        end
+    })
+
+    MainTab:Separator()
+    
+    MainTab:Label({ 
+        Text = "Created by dem3x3 | MOON",
+        TextColor3 = Color3.fromRGB(150, 150, 150)
+    })
+end
