@@ -392,7 +392,7 @@ end
 --==============================================================================
 
 Window = ImGui:CreateWindow({
-    Title = "TDX Macro Recorder",
+    Title = "Moon",
     Size = UDim2.new(0, 350, 0, 120),
     Position = UDim2.new(0.5, 0, 0.5, 0)
 })
@@ -431,10 +431,8 @@ StartCheckbox = MainTab:Checkbox({
             
             recordedActions = {}
             
-            print("🎬 Recording started: " .. macroName .. ".json")
             preserveSuperFunctions()
         else
-            print("⏸️ Recording stopped")
         end
     end
 })
