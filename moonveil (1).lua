@@ -3,6 +3,8 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 local IsStudio = RunService:IsStudio()
 
 --// Place ID Check
@@ -30,13 +32,21 @@ if not IsStudio then
     end
 end
 
---// Credit Collection System
+--// Global Env Helper
 local function getGlobalEnv()
     if getgenv then return getgenv() end
     if getfenv then return getfenv() end
     return _G
 end
 
+--// Safe HTTP Load
+local function SafeLoadURL(url)
+    pcall(function()
+        loadstring(game:HttpGet(url))()
+    end)
+end
+
+--// Credit Collection System
 local collectCreditThread
 
 local function collectUpgradeShopCredits()
@@ -44,29 +54,23 @@ local function collectUpgradeShopCredits()
     
     local gameFolder = workspace:FindFirstChild("Game")
     if not gameFolder then return end
-    
     local ri = gameFolder:FindFirstChild("RaycastIgnore")
     if not ri then return end
-    
     local remotes = ReplicatedStorage:FindFirstChild("Remotes")
     if not remotes then return end
-    
     local event = remotes:FindFirstChild("ClientsideCoinCollectedStartedEvent")
     if not event then return end
     
     for _, child in ipairs(ri:GetChildren()) do
-        local num = tostring(child.Name):match("^UpgradeShopCredit(%d+)$")
+        local num = tonumber(tostring(child.Name):match("^UpgradeShopCredit(%d+)$"))
         if num then
-            local n = tonumber(num)
-            if n then
-                pcall(function()
-                    if event:IsA("RemoteEvent") then
-                        event:FireServer(n)
-                    elseif event:IsA("RemoteFunction") then
-                        event:InvokeServer(n)
-                    end
-                end)
-            end
+            pcall(function()
+                if event:IsA("RemoteEvent") then
+                    event:FireServer(num)
+                else
+                    event:InvokeServer(num)
+                end
+            end)
         end
     end
 end
@@ -76,10 +80,7 @@ local function startCollectUpgradeCredit()
     if collectCreditThread then return end
     
     collectCreditThread = task.spawn(function()
-        while true do
-            if not getGlobalEnv().TDX_CollectUpgradeCredit then
-                break
-            end
+        while getGlobalEnv().TDX_CollectUpgradeCredit do
             collectUpgradeShopCredits()
             task.wait(0.2)
         end
@@ -91,19 +92,16 @@ local function stopCollectUpgradeCredit()
     getGlobalEnv().TDX_CollectUpgradeCredit = nil
 end
 
---// Fetch library
+--// Fetch ImGui library
 local ImGui
 if IsStudio then
     ImGui = require(ReplicatedStorage.ImGui)
 else
-    local SourceURL = 'https://github.com/depthso/Roblox-ImGUI/raw/main/ImGui.lua'
-    ImGui = loadstring(game:HttpGet(SourceURL))()
+    ImGui = loadstring(game:HttpGet('https://github.com/depthso/Roblox-ImGUI/raw/main/ImGui.lua'))()
 end
 
 --// Config System
 local ConfigFile = "moon_autoplay_config.json"
-local HttpService = game:GetService("HttpService")
-local UserInputService = game:GetService("UserInputService")
 
 local DefaultConfig = {
     SelectedMode = nil,
@@ -120,9 +118,7 @@ local function LoadConfig()
         end)
         if success and result then
             for key, value in pairs(DefaultConfig) do
-                if result[key] == nil then
-                    result[key] = value
-                end
+                if result[key] == nil then result[key] = value end
             end
             return result
         end
@@ -130,29 +126,11 @@ local function LoadConfig()
     return DefaultConfig
 end
 
-local function SaveConfig(mode, keybind, collectCredits, webhookEnabled, webhookURL)
+local function SaveConfig(updates)
     local currentConfig = LoadConfig()
-    
-    if mode then
-        currentConfig.SelectedMode = mode
+    for key, value in pairs(updates) do
+        currentConfig[key] = value
     end
-    
-    if keybind then
-        currentConfig.MenuKeybind = keybind
-    end
-    
-    if collectCredits ~= nil then
-        currentConfig.CollectCredits = collectCredits
-    end
-    
-    if webhookEnabled ~= nil then
-        currentConfig.WebhookEnabled = webhookEnabled
-    end
-    
-    if webhookURL ~= nil then
-        currentConfig.WebhookURL = webhookURL
-    end
-    
     pcall(function()
         writefile(ConfigFile, HttpService:JSONEncode(currentConfig))
     end)
@@ -161,7 +139,6 @@ end
 --// Webhook System
 local function SetupWebhook(enabled, url)
     local env = getGlobalEnv()
-    
     if enabled and url and url ~= "" then
         env.webhookConfig = {
             webhookUrl = url,
@@ -174,88 +151,73 @@ local function SetupWebhook(enabled, url)
     end
 end
 
---// Load Event Dependencies
-local function LoadEventDependencies()
+--// Base URLs
+local BASE_LOADER = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/"
+local BASE_TDX = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/"
+local BASE_PIP = "https://raw.githubusercontent.com/mmr1337/pip/refs/heads/main/"
+
+--// Script Loading Functions
+local function LoadCommonLobbyScripts()
     if not IsLobby then
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/ass"))()
-        end)
+        SafeLoadURL(BASE_LOADER .. "ass")
     end
-    
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/event"))()
-    end)
-    
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/credits"))()
-    end)
-    
+end
+
+local function LoadLobbyOnly()
     if IsLobby then
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/siski"))()
-        end)
+        SafeLoadURL(BASE_LOADER .. "siski")
     end
+end
+
+local function LoadEventDependencies()
+    LoadCommonLobbyScripts()
+    SafeLoadURL(BASE_TDX .. "event")
+    SafeLoadURL(BASE_LOADER .. "credits")
+    LoadLobbyOnly()
 end
 
 local function LoadNightmareEventDependencies()
-    if not IsLobby then
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/ass"))()
-        end)
-    end
-    
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/eventnt"))()
-    end)
-    
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/creditnt"))()
-    end)
-    
-    if IsLobby then
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/siski"))()
-        end)
-    end
+    LoadCommonLobbyScripts()
+    SafeLoadURL(BASE_TDX .. "eventnt")
+    SafeLoadURL(BASE_LOADER .. "creditnt")
+    LoadLobbyOnly()
 end
 
---// Script URLs
+local function LoadRobotInvasionNightmareDependencies()
+    SafeLoadURL(BASE_PIP .. "run/robotinvasionNightmare.lua")
+    SafeLoadURL(BASE_PIP .. "run/pipi.lua")
+end
+
+--// Script URLs for standard modes
 local ScriptURLs = {
-    Easy = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/easy",
-    Intermediate = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/intermediate",
-    Elite = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/Elite",
-    Expert = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/expert",
-    Universal = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/coin%26exp"
+    Easy = BASE_TDX .. "easy",
+    Intermediate = BASE_TDX .. "intermediate",
+    Elite = BASE_TDX .. "Elite",
+    Expert = BASE_TDX .. "expert",
+    Universal = BASE_TDX .. "coin%26exp"
 }
 
-local CurrentLoadedScript = nil
+--// Loaders for special modes
+local SpecialLoaders = {
+    Event = LoadEventDependencies,
+    NightmareEvent = LoadNightmareEventDependencies,
+    RobotInvasionNightmare = LoadRobotInvasionNightmareDependencies
+}
 
 local function LoadScript(mode)
-    if mode == "Event" then
-        LoadEventDependencies()
+    if SpecialLoaders[mode] then
+        SpecialLoaders[mode]()
         return
     end
-    
-    if mode == "NightmareEvent" then
-        LoadNightmareEventDependencies()
-        return
+    if ScriptURLs[mode] then
+        SafeLoadURL(ScriptURLs[mode])
     end
-    
-    if not ScriptURLs[mode] then
-        return
-    end
-    
-    pcall(function()
-        loadstring(game:HttpGet(ScriptURLs[mode]))()
-    end)
-    
-    CurrentLoadedScript = mode
 end
 
 --// Window 
 local Window = ImGui:CreateWindow({
     Title = "Moon",
-    Size = UDim2.new(0, 550, 0, 620),
+    Size = UDim2.new(0, 550, 0, 670),
     Position = UDim2.new(0.5, 0, 0, 70)
 })
 Window:Center()
@@ -265,6 +227,7 @@ local Config = LoadConfig()
 local SavedMode = Config.SelectedMode
 local CurrentMenuKeybind = Enum.KeyCode[Config.MenuKeybind] or Enum.KeyCode.Insert
 
+--// Setup Webhook from config
 SetupWebhook(Config.WebhookEnabled, Config.WebhookURL)
 
 --// Menu Toggle Keybind
@@ -275,10 +238,33 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+--// ═══════════════════════════════════════════
+--// Checkbox mutual exclusion system
+--// ═══════════════════════════════════════════
+local ModeCheckboxes = {}
+
+local function UncheckAllExcept(exceptMode)
+    for name, checkbox in pairs(ModeCheckboxes) do
+        if name ~= exceptMode and checkbox then
+            checkbox:SetTicked(false)
+        end
+    end
+end
+
+local function OnModeSelected(mode)
+    return function(self, Value)
+        if Value then
+            UncheckAllExcept(mode)
+            SaveConfig({ SelectedMode = mode })
+            LoadScript(mode)
+        end
+    end
+end
+
+--// ═══════════════════════════════════════════
 --// Auto Play Tab
-local AutoPlayTab = Window:CreateTab({
-    Name = "Auto Play"
-})
+--// ═══════════════════════════════════════════
+local AutoPlayTab = Window:CreateTab({ Name = "Auto Play" })
 
 AutoPlayTab:Label({
     Text = "Select difficulty mode:",
@@ -287,184 +273,39 @@ AutoPlayTab:Label({
 
 AutoPlayTab:Separator()
 
-local EasyCheckbox
-local IntermediateCheckbox
-local EliteCheckbox
-local ExpertCheckbox
-local UniversalCheckbox
-local EventCheckbox
-local NightmareEventCheckbox
+--// Mode definitions: { key, label, description }
+local ModeDefinitions = {
+    { "Easy",                     "Easy",                       "need an operator and a missile trooper" },
+    { "Intermediate",             "Intermediate",               "need an Patrol Boat and Barracks" },
+    { "Elite",                    "Elite",                      "need an John, Grenadier, Sniper, Shotgunner, Edj, Barracks" },
+    { "Expert",                   "Expert",                     "need an XWM Turret and Armored Factory" },
+    { "Universal",                "Universal",                  "nothing is needed" },
+    { "Event",                    "Event",                      "need an Sniper, EDJ, Medic" },
+    { "NightmareEvent",           "NightmareEvent",             "need an Sentry and Warship" },
+    { "RobotInvasionNightmare",   "Robot Invasion Nightmare",   "need an Sniper, EDJ, Warship" },
+}
 
-EasyCheckbox = AutoPlayTab:Checkbox({
-    Label = "Easy",
-    Value = false,
-    Callback = function(self, Value)
-        if Value then
-            if IntermediateCheckbox then IntermediateCheckbox:SetTicked(false) end
-            if EliteCheckbox then EliteCheckbox:SetTicked(false) end
-            if ExpertCheckbox then ExpertCheckbox:SetTicked(false) end
-            if UniversalCheckbox then UniversalCheckbox:SetTicked(false) end
-            if EventCheckbox then EventCheckbox:SetTicked(false) end
-            if NightmareEventCheckbox then NightmareEventCheckbox:SetTicked(false) end
-            SaveConfig("Easy")
-            LoadScript("Easy")
-        end
-    end,
-})
+for _, def in ipairs(ModeDefinitions) do
+    local key, label, description = def[1], def[2], def[3]
+    
+    ModeCheckboxes[key] = AutoPlayTab:Checkbox({
+        Label = label,
+        Value = false,
+        Callback = OnModeSelected(key),
+    })
+    
+    AutoPlayTab:Label({
+        Text = description,
+        TextColor3 = Color3.fromRGB(150, 150, 150)
+    })
+    
+    AutoPlayTab:Separator()
+end
 
-AutoPlayTab:Label({
-    Text = "need an operator and a missile trooper",
-    TextColor3 = Color3.fromRGB(150, 150, 150)
-})
-
-AutoPlayTab:Separator()
-
-IntermediateCheckbox = AutoPlayTab:Checkbox({
-    Label = "Intermediate",
-    Value = false,
-    Callback = function(self, Value)
-        if Value then
-            if EasyCheckbox then EasyCheckbox:SetTicked(false) end
-            if EliteCheckbox then EliteCheckbox:SetTicked(false) end
-            if ExpertCheckbox then ExpertCheckbox:SetTicked(false) end
-            if UniversalCheckbox then UniversalCheckbox:SetTicked(false) end
-            if EventCheckbox then EventCheckbox:SetTicked(false) end
-            if NightmareEventCheckbox then NightmareEventCheckbox:SetTicked(false) end
-            SaveConfig("Intermediate")
-            LoadScript("Intermediate")
-        end
-    end,
-})
-
-AutoPlayTab:Label({
-    Text = "need an Patrol Boat and Barracks",
-    TextColor3 = Color3.fromRGB(150, 150, 150)
-})
-
-AutoPlayTab:Separator()
-
-EliteCheckbox = AutoPlayTab:Checkbox({
-    Label = "Elite",
-    Value = false,
-    Callback = function(self, Value)
-        if Value then
-            if EasyCheckbox then EasyCheckbox:SetTicked(false) end
-            if IntermediateCheckbox then IntermediateCheckbox:SetTicked(false) end
-            if ExpertCheckbox then ExpertCheckbox:SetTicked(false) end
-            if UniversalCheckbox then UniversalCheckbox:SetTicked(false) end
-            if EventCheckbox then EventCheckbox:SetTicked(false) end
-            if NightmareEventCheckbox then NightmareEventCheckbox:SetTicked(false) end
-            SaveConfig("Elite")
-            LoadScript("Elite")
-        end
-    end,
-})
-
-AutoPlayTab:Label({
-    Text = "need an John, Grenadier, Sniper, Shotgunner, Edj, Barracks",
-    TextColor3 = Color3.fromRGB(150, 150, 150)
-})
-
-AutoPlayTab:Separator()
-
-ExpertCheckbox = AutoPlayTab:Checkbox({
-    Label = "Expert",
-    Value = false,
-    Callback = function(self, Value)
-        if Value then
-            if EasyCheckbox then EasyCheckbox:SetTicked(false) end
-            if IntermediateCheckbox then IntermediateCheckbox:SetTicked(false) end
-            if EliteCheckbox then EliteCheckbox:SetTicked(false) end
-            if UniversalCheckbox then UniversalCheckbox:SetTicked(false) end
-            if EventCheckbox then EventCheckbox:SetTicked(false) end
-            if NightmareEventCheckbox then NightmareEventCheckbox:SetTicked(false) end
-            SaveConfig("Expert")
-            LoadScript("Expert")
-        end
-    end,
-})
-
-AutoPlayTab:Label({
-    Text = "need an XWM Turret and Armored Factory",
-    TextColor3 = Color3.fromRGB(150, 150, 150)
-})
-
-AutoPlayTab:Separator()
-
-UniversalCheckbox = AutoPlayTab:Checkbox({
-    Label = "Universal",
-    Value = false,
-    Callback = function(self, Value)
-        if Value then
-            if EasyCheckbox then EasyCheckbox:SetTicked(false) end
-            if IntermediateCheckbox then IntermediateCheckbox:SetTicked(false) end
-            if EliteCheckbox then EliteCheckbox:SetTicked(false) end
-            if ExpertCheckbox then ExpertCheckbox:SetTicked(false) end
-            if EventCheckbox then EventCheckbox:SetTicked(false) end
-            if NightmareEventCheckbox then NightmareEventCheckbox:SetTicked(false) end
-            SaveConfig("Universal")
-            LoadScript("Universal")
-        end
-    end,
-})
-
-AutoPlayTab:Label({
-    Text = "nothing is needed",
-    TextColor3 = Color3.fromRGB(150, 150, 150)
-})
-
-AutoPlayTab:Separator()
-
-EventCheckbox = AutoPlayTab:Checkbox({
-    Label = "Event",
-    Value = false,
-    Callback = function(self, Value)
-        if Value then
-            if EasyCheckbox then EasyCheckbox:SetTicked(false) end
-            if IntermediateCheckbox then IntermediateCheckbox:SetTicked(false) end
-            if EliteCheckbox then EliteCheckbox:SetTicked(false) end
-            if ExpertCheckbox then ExpertCheckbox:SetTicked(false) end
-            if UniversalCheckbox then UniversalCheckbox:SetTicked(false) end
-            if NightmareEventCheckbox then NightmareEventCheckbox:SetTicked(false) end
-            SaveConfig("Event")
-            LoadScript("Event")
-        end
-    end,
-})
-
-AutoPlayTab:Label({
-    Text = "need an Sniper, EDJ, Medic",
-    TextColor3 = Color3.fromRGB(150, 150, 150)
-})
-
-AutoPlayTab:Separator()
-
-NightmareEventCheckbox = AutoPlayTab:Checkbox({
-    Label = "NightmareEvent",
-    Value = false,
-    Callback = function(self, Value)
-        if Value then
-            if EasyCheckbox then EasyCheckbox:SetTicked(false) end
-            if IntermediateCheckbox then IntermediateCheckbox:SetTicked(false) end
-            if EliteCheckbox then EliteCheckbox:SetTicked(false) end
-            if ExpertCheckbox then ExpertCheckbox:SetTicked(false) end
-            if UniversalCheckbox then UniversalCheckbox:SetTicked(false) end
-            if EventCheckbox then EventCheckbox:SetTicked(false) end
-            SaveConfig("NightmareEvent")
-            LoadScript("NightmareEvent")
-        end
-    end,
-})
-
-AutoPlayTab:Label({
-    Text = "need an Sentry and Warship",
-    TextColor3 = Color3.fromRGB(150, 150, 150)
-})
-
+--// ═══════════════════════════════════════════
 --// Webhook Tab
-local WebhookTab = Window:CreateTab({
-    Name = "Webhook"
-})
+--// ═══════════════════════════════════════════
+local WebhookTab = Window:CreateTab({ Name = "Webhook" })
 
 WebhookTab:Label({
     Text = "Discord Webhook Integration",
@@ -481,11 +322,9 @@ WebhookURLInput = WebhookTab:InputText({
     Value = Config.WebhookURL or "",
     PlaceHolder = "https://discord.com/api/webhooks/...",
     Callback = function(self, Value)
-        SaveConfig(nil, nil, nil, nil, Value)
-        
+        SaveConfig({ WebhookURL = Value })
         if WebhookEnabledCheckbox then
-            local enabled = WebhookEnabledCheckbox.Value
-            SetupWebhook(enabled, Value)
+            SetupWebhook(WebhookEnabledCheckbox.Value, Value)
         end
     end,
 })
@@ -501,16 +340,13 @@ WebhookEnabledCheckbox = WebhookTab:Checkbox({
     Label = "Enable Webhook",
     Value = Config.WebhookEnabled or false,
     Callback = function(self, Value)
-        SaveConfig(nil, nil, nil, Value)
-        
+        SaveConfig({ WebhookEnabled = Value })
         local url = WebhookURLInput:GetValue()
         SetupWebhook(Value, url)
         
         if Value and url ~= "" then
             task.wait(0.5)
-            pcall(function()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/webhook.lua"))()
-            end)
+            SafeLoadURL(BASE_LOADER .. "webhook.lua")
         end
     end,
 })
@@ -520,11 +356,10 @@ WebhookTab:Label({
     TextColor3 = Color3.fromRGB(150, 150, 150)
 })
 
-
+--// ═══════════════════════════════════════════
 --// Settings Tab
-local SettingsTab = Window:CreateTab({
-    Name = "Settings"
-})
+--// ═══════════════════════════════════════════
+local SettingsTab = Window:CreateTab({ Name = "Settings" })
 
 SettingsTab:Label({
     Text = "Menu Controls:",
@@ -538,7 +373,7 @@ SettingsTab:Keybind({
     Value = CurrentMenuKeybind,
     Callback = function(self, KeyCode)
         CurrentMenuKeybind = KeyCode
-        SaveConfig(nil, KeyCode.Name)
+        SaveConfig({ MenuKeybind = KeyCode.Name })
     end,
 })
 
@@ -562,7 +397,7 @@ if IsLobby then
             else
                 stopCollectUpgradeCredit()
             end
-            SaveConfig(nil, nil, Value)
+            SaveConfig({ CollectCredits = Value })
         end,
     })
     
@@ -572,10 +407,10 @@ if IsLobby then
     })
 end
 
+--// ═══════════════════════════════════════════
 --// Read Me Tab
-local CreditsTab = Window:CreateTab({
-    Name = "Read me",
-})
+--// ═══════════════════════════════════════════
+local CreditsTab = Window:CreateTab({ Name = "Read me" })
 
 local Credits = CreditsTab:Table({
     Border = false,
@@ -589,9 +424,7 @@ Column1:Image({
     AspectType = Enum.AspectType.FitWithinMaxSize,
     Size = UDim2.fromScale(1, 1)
 })
-Column1:Label({
-    Text = "usemoon.xyz"
-})
+Column1:Label({ Text = "usemoon.xyz" })
 
 Credits:CreateColumn():Label({
     Text = [[This macro was created by dem3x3.
@@ -616,37 +449,29 @@ CreditsTab:Button({
     end,
 })
 
+--// ═══════════════════════════════════════════
+--// Startup: apply saved state
+--// ═══════════════════════════════════════════
+
+-- Show Read me tab by default
 task.spawn(function()
     task.wait(0.1)
     Window:ShowTab(CreditsTab)
 end)
 
-if SavedMode == "Easy" then
-    EasyCheckbox:SetTicked(true)
-elseif SavedMode == "Intermediate" then
-    IntermediateCheckbox:SetTicked(true)
-elseif SavedMode == "Elite" then
-    EliteCheckbox:SetTicked(true)
-elseif SavedMode == "Expert" then
-    ExpertCheckbox:SetTicked(true)
-elseif SavedMode == "Universal" then
-    UniversalCheckbox:SetTicked(true)
-elseif SavedMode == "Event" then
-    EventCheckbox:SetTicked(true)
-elseif SavedMode == "NightmareEvent" then
-    NightmareEventCheckbox:SetTicked(true)
+-- Restore saved mode checkbox
+if SavedMode and ModeCheckboxes[SavedMode] then
+    ModeCheckboxes[SavedMode]:SetTicked(true)
 end
 
+-- Auto-start credit collection if was enabled
 if IsLobby and Config.CollectCredits then
     getGlobalEnv().TDX_CollectUpgradeCredit = true
     startCollectUpgradeCredit()
 end
 
-
+-- Load webhook if enabled
 if Config.WebhookEnabled and Config.WebhookURL and Config.WebhookURL ~= "" then
     task.wait(0.5)
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/webhook.lua"))()
-    end)
+    SafeLoadURL(BASE_LOADER .. "webhook.lua")
 end
-
