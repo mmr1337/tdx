@@ -11,6 +11,10 @@ local IsStudio = RunService:IsStudio()
 local CurrentPlaceId = game.PlaceId
 local IsLobby = CurrentPlaceId == 11739766412
 
+--// Wait for LocalPlayer and PlayerGui
+local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() and Players.LocalPlayer
+repeat task.wait() until LocalPlayer:FindFirstChild("PlayerGui")
+
 --// Anti-AFK
 if not IsStudio then
     local speaker = Players.LocalPlayer
