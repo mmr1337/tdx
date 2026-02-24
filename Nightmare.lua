@@ -23,6 +23,9 @@ until ContentProvider.RequestQueueSize == 0
 
 warn("load")
 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/fps.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/black.lua"))()
+
 
 
 
@@ -33,8 +36,6 @@ local macroFile = macroFolder.."/op.json"
 local loaderURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/loader.lua"
 local rebildURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/rebuild.lua"
 local skipWaveURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/auto_skip.lua"
-local fpsURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/fps.lua"
-local blackURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/black.lua"
 
 
 
