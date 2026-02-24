@@ -23,12 +23,6 @@ until ContentProvider.RequestQueueSize == 0
 
 warn("load")
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/fps.lua"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/black.lua"))()
-
-
-
-
 local keyURL = "https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/key.txt" -- Replace with your actual key list URL
 local jsonURL = "https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/op.json"
 local macroFolder = "tdx/macros"
@@ -86,4 +80,5 @@ _G.WaveConfig = {
 -- Run auto skip script
 loadstring(game:HttpGet(skipWaveURL))()
 
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/fps.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/black.lua"))()
