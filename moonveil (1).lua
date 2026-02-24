@@ -12,8 +12,12 @@ local CurrentPlaceId = game.PlaceId
 local IsLobby = CurrentPlaceId == 11739766412
 
 --// Wait for LocalPlayer and PlayerGui
-local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() and Players.LocalPlayer
-repeat task.wait() until LocalPlayer:FindFirstChild("PlayerGui")
+local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    LocalPlayer = Players.LocalPlayer
+end
+repeat task.wait() until LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
 
 --// Anti-AFK
 if not IsStudio then
