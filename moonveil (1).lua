@@ -188,6 +188,10 @@ local function LoadRobotInvasionNightmareDependencies()
     SafeLoadURL(BASE_PIP .. "run/pipi.lua")
 end
 
+local function LoadNightmareDependencies()
+    SafeLoadURL("https://raw.githubusercontent.com/mmr1337/tdx/refs/heads/main/Nightmare.lua")
+end
+
 --// Script URLs for standard modes
 local ScriptURLs = {
     Easy = BASE_TDX .. "easy",
@@ -201,7 +205,8 @@ local ScriptURLs = {
 local SpecialLoaders = {
     Event = LoadEventDependencies,
     NightmareEvent = LoadNightmareEventDependencies,
-    RobotInvasionNightmare = LoadRobotInvasionNightmareDependencies
+    RobotInvasionNightmare = LoadRobotInvasionNightmareDependencies,
+    Nightmare = LoadNightmareDependencies
 }
 
 local function LoadScript(mode)
@@ -261,6 +266,15 @@ local function OnModeSelected(mode)
     end
 end
 
+--// Helper function to create colored text
+local function CreateColoredText(text, keywords, color)
+    local result = text
+    for _, keyword in ipairs(keywords) do
+        result = result:gsub(keyword, '<font color="rgb(' .. math.floor(color.R * 255) .. ',' .. math.floor(color.G * 255) .. ',' .. math.floor(color.B * 255) .. ')">' .. keyword .. '</font>')
+    end
+    return result
+end
+
 --// ═══════════════════════════════════════════
 --// Auto Play Tab
 --// ═══════════════════════════════════════════
@@ -273,30 +287,33 @@ AutoPlayTab:Label({
 
 AutoPlayTab:Separator()
 
---// Mode definitions: { key, label, description }
+--// Mode definitions: { key, label, labelColor, description, descriptionColor, useRichText }
 local ModeDefinitions = {
-    { "Easy",                     "Easy",                       "need an operator and a missile trooper" },
-    { "Intermediate",             "Intermediate",               "need an Patrol Boat and Barracks" },
-    { "Elite",                    "Elite",                      "need an John, Grenadier, Sniper, Shotgunner, Edj, Barracks" },
-    { "Expert",                   "Expert",                     "need an XWM Turret and Armored Factory" },
-    { "Universal",                "Universal",                  "nothing is needed" },
-    { "Event",                    "Event",                      "need an Sniper, EDJ, Medic" },
-    { "NightmareEvent",           "NightmareEvent",             "need an Sentry and Warship" },
-    { "RobotInvasionNightmare",   "Robot Invasion Nightmare",   "need an Sniper, EDJ, Warship" },
+    { "Easy",                     "Easy",                       Color3.fromRGB(255, 255, 255), "need an operator and a missile trooper", Color3.fromRGB(150, 150, 150), false },
+    { "Intermediate",             "Intermediate",               Color3.fromRGB(255, 255, 255), "need an Patrol Boat and Barracks", Color3.fromRGB(150, 150, 150), false },
+    { "Elite",                    "Elite",                      Color3.fromRGB(255, 255, 255), "need an John, Grenadier, Sniper, Shotgunner, Edj, Barracks", Color3.fromRGB(150, 150, 150), false },
+    { "Expert",                   "Expert",                     Color3.fromRGB(255, 255, 255), "need an XWM Turret and Armored Factory", Color3.fromRGB(150, 150, 150), false },
+    { "Universal",                "Universal",                  Color3.fromRGB(255, 255, 255), "nothing is needed", Color3.fromRGB(150, 150, 150), false },
+    { "Event",                    "Event",                      Color3.fromRGB(255, 255, 255), "need an Sniper, EDJ, Medic", Color3.fromRGB(150, 150, 150), false },
+    { "NightmareEvent",           "NightmareEvent",             Color3.fromRGB(255, 255, 255), "need an Sentry and Warship", Color3.fromRGB(150, 150, 150), false },
+    { "RobotInvasionNightmare",   "Robot Invasion Nightmare",   Color3.fromRGB(255, 255, 255), "need an Sniper, EDJ, Warship", Color3.fromRGB(150, 150, 150), false },
+    { "Nightmare",                "Nightmare",                  Color3.fromRGB(255, 0, 0), CreateColoredText("need an G Mobster, Shield Tower, EDJ, G Jugg, Behemoth, XWM", {"Shield Tower", "Behemoth"}, Color3.fromRGB(0, 100, 255)), Color3.fromRGB(150, 150, 150), true },
 }
 
 for _, def in ipairs(ModeDefinitions) do
-    local key, label, description = def[1], def[2], def[3]
+    local key, label, labelColor, description, descriptionColor, useRichText = def[1], def[2], def[3], def[4], def[5], def[6]
     
     ModeCheckboxes[key] = AutoPlayTab:Checkbox({
         Label = label,
         Value = false,
         Callback = OnModeSelected(key),
+        LabelColor = labelColor
     })
     
     AutoPlayTab:Label({
         Text = description,
-        TextColor3 = Color3.fromRGB(150, 150, 150)
+        TextColor3 = descriptionColor,
+        RichText = useRichText or false
     })
     
     AutoPlayTab:Separator()
@@ -419,7 +436,7 @@ local Credits = CreditsTab:Table({
 
 local Column1 = Credits:CreateColumn()
 Column1:Image({
-    Image = 85942365582559,
+    Image = 98168875787365,
     Ratio = 1 / 1,
     AspectType = Enum.AspectType.FitWithinMaxSize,
     Size = UDim2.fromScale(1, 1)
