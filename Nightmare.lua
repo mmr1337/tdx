@@ -80,5 +80,4 @@ _G.WaveConfig = {
 -- Run auto skip script
 loadstring(game:HttpGet(skipWaveURL))()
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/fps.lua"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/mmr1337/loader.lua/refs/heads/main/black.lua"))()
+
